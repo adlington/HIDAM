@@ -13,12 +13,24 @@ Source code for paper "Heterogeneous Information Network based Default Analysis 
 ## Usage
 
 * Create a new folder `data` under the project path:
-`cd HIDAM`
-`mkdir data`
+```
+cd HIDAM
+mkdir data
+```
 
 * Download DBLP data from [here](https://cloud.tsinghua.edu.cn/d/2d965d2fc2ee41d09def/files/?p=%2FDBLP.zip&dl=1) to `data`, where the dataset has already been preprocessed in [Heterogeneous Graph Benchmark(HGB)](https://github.com/THUDM/HGB)
-`cd data`
-`unzip DBLP.zip`
+```
+cd data
+unzip DBLP.zip
+```
 
 * Run HIDAM on the public dataset DBLP:
-`python main.py`
+```
+# cpu training
+python main.py
+```
+or
+```
+# gpu training
+python main.py --cuda
+```

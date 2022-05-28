@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument("--epoch", type=int, default=200, help="Training epochs")
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     parser.add_argument("--eval_metric", type=str, default="micro_f1", choices=["micro_f1", "macro_f1", "auc", "ks"], help="Evaluation metric")
-
+    parser.add_argument("--cuda", action="store_true", default=False, help="GPU training")
     args = parser.parse_args()
     return args
 
@@ -53,6 +53,12 @@ if __name__ == "__main__":
         l2_norm = args.l2_norm,
         batch_norm = args.batch_norm
         )
+    # device
+    if args.cuda:
+        device = torch.device("cuda")
+        model = model.to(device)
+    else:
+        device = None
     # loss function
     criterion = nn.CrossEntropyLoss()
     # set the optimizer parameters
@@ -68,6 +74,6 @@ if __name__ == "__main__":
         sampling_params = sampling_params,
         batch_size = [args.batch_size, args.batch_size]
     )
-    state, evaluator = trainer.train(epochs=args.epoch, eval_metric=args.eval_metric)
+    state, evaluator = trainer.train(epochs=args.epoch, eval_metric=args.eval_metric, device=device)
     # save the model
     # torch.save(state,"hidam.pth")
