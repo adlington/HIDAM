@@ -115,14 +115,22 @@ class InstanceFusion(nn.Module):
                 for i in range(len(self.mp_info[0])):
                     nid = self.mp_info[0][i].item()
                     if self.ntype_dict[nid] in nfeat_dict:
-                        h_tmp = self.feat_dropout(nfeat_dict[self.ntype_dict[nid]][g.edata["hn"][:, i]])
-                        h_tmp = tf_mods[self.ntype_dict[nid]](h_tmp).view(-1, self.num_heads, self.out_dim)  # (num_edge, num_heads, out_dim)
+                        # h_tmp = self.feat_dropout(nfeat_dict[self.ntype_dict[nid]][g.edata["hn"][:, i]])
+                        # h_tmp = tf_mods[self.ntype_dict[nid]](h_tmp).view(-1, self.num_heads, self.out_dim)  # (num_edge, num_heads, out_dim)
+                        # first transformed to hidden size to reduce memory cost
+                        h_all = self.feat_dropout(nfeat_dict[self.ntype_dict[nid]])
+                        h_all = tf_mods[self.ntype_dict[nid]](h_all).view(-1, self.num_heads, self.out_dim)  # (num_edge, num_heads, out_dim)
+                        h_tmp = h_all[g.edata["hn"][:, i]]
                         feat_virtual.append(h_tmp)
                 for i in range(len(self.mp_info[1])):
                     eid = self.mp_info[1][i].item()
                     if self.etype_dict[eid] in efeat_dict:
-                        e_tmp = self.feat_dropout(efeat_dict[self.etype_dict[eid]][g.edata["he"][:, i]])
-                        e_tmp = tf_mods[self.etype_dict[eid]](e_tmp).view(-1, self.num_heads, self.out_dim)  # (num_edge, num_heads, out_dim)
+                        # e_tmp = self.feat_dropout(efeat_dict[self.etype_dict[eid]][g.edata["he"][:, i]])
+                        # e_tmp = tf_mods[self.etype_dict[eid]](e_tmp).view(-1, self.num_heads, self.out_dim)  # (num_edge, num_heads, out_dim)
+                        # first transformed to hidden size to reduce memory cost
+                        e_all = self.feat_dropout(efeat_dict[self.etype_dict[eid]])
+                        e_all = tf_mods[self.etype_dict[eid]](e_all).view(-1, self.num_heads, self.out_dim)  # (num_edge, num_heads, out_dim)
+                        e_tmp = e_all[g.edata["he"][:, i]]
                         feat_virtual.append(e_tmp)
                 
                 g.edata["h"] = torch.cat(feat_virtual, dim=-1)  # (num_edge, num_heads, edge_dim)
