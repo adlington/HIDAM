@@ -156,7 +156,7 @@ class GNNTrainer:
             data_loader = NodeDataLoader(self.dataset.g, nodes1, sampler, batch_size=self.eval_batch_size)
         return data_loader
 
-    def train(self, epochs=200, early_stopping=50, eval_metric="auc"):
+    def train(self, epochs=200, early_stopping=50, eval_metric="auc", device=None):
         """
         Description
         -----------
@@ -167,6 +167,7 @@ class GNNTrainer:
         epochs: int, the training epochs. (Default: 200)
         early_stopping: int, the early stopping rounds. (Default: 50)
         eval_metric: str, the evaluation metric which should be in ["auc", "ks", "micro_f1", "macro_f1"]. (Default: "auc")
+        device: torch.device or None, if None, use cpu training. (Default: None)
 
         Returns
         -------
@@ -180,8 +181,12 @@ class GNNTrainer:
         train_loader2 = self.get_dataloader(mode="train_eval")
         valid_loader = self.get_dataloader(mode="valid")
         test_loader = self.get_dataloader(mode="test")
-        nfeat_dict = self.dataset.nfeat
-        efeat_dict = self.dataset.efeat
+        if device is not None:
+            nfeat_dict = {node: feat.to(device) for node, feat in self.dataset.nfeat.items()}
+            efeat_dict = {edge: feat.to(device) for edge, feat in self.dataset.efeat.items()}
+        else:
+            nfeat_dict = self.dataset.nfeat
+            efeat_dict = self.dataset.efeat
         inputs_all = {self.model.target: nfeat_dict[self.model.target]}
         label = self.dataset.label
 
@@ -191,10 +196,10 @@ class GNNTrainer:
         for i in range(start_epoch+1, epochs+1):
             print("epoch:{} training start".format(i))
             t0 = time.time()
-            self.model.fit(train_loader, inputs_all, label, self.optimizer, self.criterion, nfeat_dict=nfeat_dict, efeat_dict=efeat_dict)
-            train_loss, y_pred_train = self.model.predict(train_loader2, inputs_all, label, self.criterion, nfeat_dict=nfeat_dict, efeat_dict=efeat_dict)
+            self.model.fit(train_loader, inputs_all, label, self.optimizer, self.criterion, nfeat_dict=nfeat_dict, efeat_dict=efeat_dict, device=device)
+            train_loss, y_pred_train = self.model.predict(train_loader2, inputs_all, label, self.criterion, nfeat_dict=nfeat_dict, efeat_dict=efeat_dict, device=device)
             train_evaluator = self.evaluate(label[self.dataset.train_nodes], y_pred_train)
-            valid_loss, y_pred_valid = self.model.predict(valid_loader, inputs_all, label, self.criterion, nfeat_dict=nfeat_dict, efeat_dict=efeat_dict)
+            valid_loss, y_pred_valid = self.model.predict(valid_loader, inputs_all, label, self.criterion, nfeat_dict=nfeat_dict, efeat_dict=efeat_dict, device=device)
             valid_evaluator = self.evaluate(label[self.dataset.valid_nodes], y_pred_valid)
             t1 = time.time()
             print("epoch:{} training end, train loss:{:.4f}, train {}:{:.4f}, valid loss:{:.4f}, valid {}:{:.4f}, time used:{:.2f}s".format(i, train_loss, eval_metric, train_evaluator[eval_metric], valid_loss, eval_metric, valid_evaluator[eval_metric], t1-t0))
@@ -218,7 +223,7 @@ class GNNTrainer:
                 break
         self.model.reset_parameters()
         self.model.load_state_dict(state["model"])
-        test_loss, y_pred_test = self.model.predict(test_loader, inputs_all, label, self.criterion, nfeat_dict=nfeat_dict, efeat_dict=efeat_dict)
+        test_loss, y_pred_test = self.model.predict(test_loader, inputs_all, label, self.criterion, nfeat_dict=nfeat_dict, efeat_dict=efeat_dict, device=device)
         test_evaluator = self.evaluate(label[self.dataset.test_nodes], y_pred_test)
         end_time = time.time()
         # print("model:HIDAM, batch_size:{}, hidden size:{}, learning rate:{}, activation:{}, dropout:{}, weight decay:{}, normalization:{}, optimizer:{}, scheduler:{}, neighbor sampling:{}".format(params["batch_size"], params["hidden_size"], params["lr"], params["activation"].__name__, params["dropout"], params["weight_decay"], params["norm"], params["opt_name"], params["scheduler_name"], params["neighbor_sampling"]))
